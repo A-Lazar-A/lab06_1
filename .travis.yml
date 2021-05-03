@@ -35,7 +35,7 @@ script:
 deploy:
  provider: releases
  api_key:
-   secure:     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
+   secure: FaRh-arP_unNdK24CljsIw
     file:
   - solver_application/_build/solver-source-files.zip
   - solver_application/_build/solver-source-files.tar.gz
