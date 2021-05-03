@@ -28,16 +28,11 @@ addons:
         - rpm
 
 script:
-    - cmake -H. -Bbuild -DCMAKE_INSTALL_PREFIX=install
-    - cmake --build build/
-    - cd build/
-    - cpack --config CPackSourceConfig.cmake # здесь получаем два пакета с исходниками
-    # поскольку c++ не поддерживается Travis (имеется в виду отсутствие поддержки matrix), 
-    # необходимо использовать ветвление в bash
-    - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cpack -G DragNDrop; fi
-    - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cpack -G RPM; cpack -G DEB; fi
-    - cd ..
-
+- cmake --build _build --target package_source
+- cd _build
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then cpack -G DragNDrop  ;fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then cpack -G DEB  ;fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then cpack -G RPM  ;fi
 deploy:
     provider: releases
     # ключ будет поставлен в переменных среды Travis CI (данное решение тоже безопасно, поскольку
@@ -46,11 +41,11 @@ deploy:
     # данная опция позволяет использовать wildcard при указании файлов для деплоя
     file_glob: true
     file:
-        - "install/packages/*.deb"
-        - "install/packages/*.rpm"
-        - "install/packages/*.dmg"
-        - "install/packages/*.tar.gz"
-        - "install/packages/*.zip"
+      - solver_application/_build/solver-source-files.zip
+      - solver_application/_build/solver-source-files.tar.gz
+      - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 'solver_application/_build/solver.dmg'  ;fi
+      - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 'solver_application/_build/solver.rpm'  ;fi
+      - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 'solver_application/_build/solver.deb'  ;fi
     # данная опция позволяет нам сделать деплой 
     # (по умолчанию, весь выход процесса сборки подлежит удалению)
     skip_cleanup: true
