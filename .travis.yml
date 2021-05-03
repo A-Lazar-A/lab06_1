@@ -1,3 +1,4 @@
+# выбираем две ОС (хотя на момент написания отчета Travis CI поддерживает и Windows)
 os:
     - linux
     - osx
@@ -25,34 +26,34 @@ addons:
         - cmake
         - cmake-data
         - rpm
+
 script:
-- cd hello_world_application
-- cmake -H. -B_build
-- cmake --build _build
-- cmake --build _build --target hello_world
-- ./_build/hello_world
-- echo "Hello world application testing is done"
-- cd ..
-- cd solver_application
-- cmake -H. -B_build
-- cmake --build _build
-- cmake --build _build --target solver
-- cmake --build _build --target package_source
-- cd _build
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then cpack -G DragNDrop  ;fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then cpack -G DEB  ;fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then cpack -G RPM  ;fi
+    - cmake -H. -Bbuild -DCMAKE_INSTALL_PREFIX=install
+    - cmake --build build/
+    - cd build/
+    - cpack --config CPackSourceConfig.cmake # здесь получаем два пакета с исходниками
+    # поскольку c++ не поддерживается Travis (имеется в виду отсутствие поддержки matrix), 
+    # необходимо использовать ветвление в bash
+    - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cpack -G DragNDrop; fi
+    - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cpack -G RPM; cpack -G DEB; fi
+    - cd ..
 
 deploy:
- provider: releases
- api_key:
-   secure: FaRh-arP_unNdK24CljsIw
+    provider: releases
+    # ключ будет поставлен в переменных среды Travis CI (данное решение тоже безопасно, поскольку
+    # по умолчанию переменные не могут быть выведены в логи сборки)
+    api_key: ${GITHUB_KEY}
+    # данная опция позволяет использовать wildcard при указании файлов для деплоя
+    file_glob: true
     file:
-  - solver_application/_build/solver-source-files.zip
-  - solver_application/_build/solver-source-files.tar.gz
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then 'solver_application/_build/solver.dmg'  ;fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 'solver_application/_build/solver.rpm'  ;fi
-  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then 'solver_application/_build/solver.deb'  ;fi
- skip_cleanup: 'true'
- on:
-  tags: true
+        - "install/packages/*.deb"
+        - "install/packages/*.rpm"
+        - "install/packages/*.dmg"
+        - "install/packages/*.tar.gz"
+        - "install/packages/*.zip"
+    # данная опция позволяет нам сделать деплой 
+    # (по умолчанию, весь выход процесса сборки подлежит удалению)
+    skip_cleanup: true
+    # деплоить только помеченные тэгом коммиты
+    on:
+        tags: true
